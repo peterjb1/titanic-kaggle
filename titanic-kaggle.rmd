@@ -45,5 +45,26 @@ write.csv(submit,file = "Titanic_Model.csv",row.names = FALSE)
 #Submission to Kaggle requires passengerID and Survived prediction, 2 columns with 418 observations.
 ```
 Results from first submission:
+
 Prediction score of: 0.62679
 - - - -
+Gender-Based analysis
+---------------------
+```{r}
+summary(train$Sex)
+#female 314, male 577
+prop.table(table(train$Sex,train$Survived),1)
+#The 1 makes it so that I get row-wise proportions, 2 gives column-wise proportions
+#74% of females survived, while 81% of males died
+```
+
+```{r}
+test$Survived <- 0
+#Creates a whole column of 0
+test$Survived[test$Sex == 'female'] <- 1
+#From everyone died, change so that only men died. All women survived.
+submit <- data.frame(PassengerId = test$PassengerId, Survived = test$Survived)
+write.csv(submit,file = "Titanic_Model.csv",row.names = FALSE)
+```
+
+Prediction score of: 0.76555
