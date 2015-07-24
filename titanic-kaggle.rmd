@@ -1,22 +1,24 @@
 ---
-title: "titanic-kaggle"
+Titanic Death Prediction Model
+==============================
 author: "Peter"
-date: "July 24, 2015"
-output: html_document
-Submissio to Kaggle requires passengerID and Survived prediction.
-==================
-Set working directory to place with files and load files
-setwd('C:/Users/Pete/titanic-kaggle')
-train <- read.csv("C:/Users/Pete/titanic-kaggle/train.csv")
-View(train)
-test <- read.csv("C:/Users/Pete/titanic-kaggle/test.csv")
-View(test)
 
+Setup
+-----
+Set working directory to place with files and load files
+  setwd('C:/Users/Pete/titanic-kaggle')
+  train <- read.csv("C:/Users/Pete/titanic-kaggle/train.csv")
+  View(train)
+  test <- read.csv("C:/Users/Pete/titanic-kaggle/test.csv")
+  View(test)
+
+First look at Data
+------------------
 Basic note: test has 418 observations and 11 variables.
 train has 891 observations and 12 variables.
 The 1 less variable is whether the passengers survived or not.
 Create a model using train and then test the model to see who in "test" survived.
-==================
+
 ```{r}
 str(train)
 #3 data types here, int, num, and factor. int is integer, num is floating, and
@@ -26,9 +28,13 @@ table(train$Survived)
 prop.table(table(train$Survived))
 #Gives proportions, and we see that 61.61% of passengers died while 38.38% survived in the training set
 ```
-As a first prediction, since the majority of patients died in my train set, lets say everyone died in the test set.
+1st Hypothesis
+--------------
+As a first prediction, since the majority of patients died in my train set, let us say everyone died.
 
+```{r}
 test$Survived <- rep(0,418)
+```
 This creates a new column called "Survived" and inputs 0 for 418 rows.
 If a "Survived" column already existed, then the values would be replaced.
 ```{r}
@@ -36,7 +42,8 @@ submit <- data.frame(PassengerId = test$PassengerId, Survived = test$Survived)
 #These words are case sensitive
 write.csv(submit,file = "Titanic_Model.csv",row.names = FALSE)
 #Create csv file using data frame and exclude row numbers
+#Submission to Kaggle requires passengerID and Survived prediction, 2 columns with 418 observations.
 ```
 Results from first submission:
 Prediction score of: 0.62679
-==================
+- - - -
