@@ -11,8 +11,11 @@ Submissions:
 
 0.77990 - Only men and females, who paid a fare > 20 and were in class 3, died
 
-File List:
+0.78469 - Machine learning with decision trees
 
+
+File List:
+----------
 test.csv
 
 train.csv

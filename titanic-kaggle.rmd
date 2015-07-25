@@ -115,3 +115,32 @@ Thus far, I cut apart the data into component so that I could identify which gro
 
 Prediction score of: 0.77990
 - - - -
+
+Analysis using Decision Trees
+-----------------------------
+Decision trees are able to quickly go through the data and provide a 0% or 100% chance of survival. However, decision trees are not optimal by themselves and are prone to overfitting.
+
+```{r}
+library(rpart)
+fit <- rpart(Survived ~ Pclass + Sex + Age + SibSp + Parch + Fare + Embarked, data=train, method="class")
+```
+Feed rpart with variable of interest(survived) with variables used for preiction, and then the data. For method, use "class" for 1 or 0, and use "anova" for continuous variables such as age
+```{r}
+plot(fit)
+text(fit)
+#this plot is neither insightful nor aesthetic
+library(rattle)
+library(rpart.plot)
+fancyRpartPlot(fit)
+#visualizing the decision tree
+Prediction <- predict(fit,test,type = "class")
+submit <- data.frame(PassengerId = test$PassengerId,Survived = Prediction)
+write.csv(submit, file = "Titanic_Model.csv",row.names=FALSE)
+```
+Fit was created using the train data. Based on the logic of the train data, a prediction model was created using the predict function (which comes from  rpart) and inputting it with fit (which holds the rules) and test (the data set we're interested in)
+
+Using decision trees, I explored areas I previously didn't consider. However, because the training set is different from the test set, I only achieved modest gains. I need a new technique to achieve greater predictability.
+
+
+Prediction score of: 0.78469
+- - - -
