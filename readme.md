@@ -1,7 +1,7 @@
 Kaggle Titanic using R
 =======================
 
-Objective: Use R and machine learning principles to predict which passengers survived and which died. :squirrel:
+Objective: Use R and machine learning principles to predict which passengers survived and which died. :squirrel: :squirrel: :squirrel:
 
 Submissions:
 
@@ -9,6 +9,7 @@ Submissions:
 
 0.76555 - Only men dies
 
+0.77990 - Only men and females, who paid a fare > 20 and were in class 3, died
 
 File List:
 

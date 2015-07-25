@@ -1,7 +1,7 @@
 ---
 Titanic Death Prediction Model
 ==============================
-author: "Peter"
+author: Peter
 
 Setup
 -----
@@ -68,3 +68,50 @@ write.csv(submit,file = "Titanic_Model.csv",row.names = FALSE)
 ```
 
 Prediction score of: 0.76555
+- - - -
+Age-based Analysis
+------------------
+```{r}
+summary(train$Age)
+#Mean of 29.70, with 177 NA's
+train$Child <- 0
+train$Child[train$Age <18] <- 1
+#Create a new column to identify children, who are below 18, and assume they all survived.
+aggregate(Survived ~ Child + Sex, data = train, FUN = sum)
+#aggregate(target variable ~ subset variable, data frame, function)
+#38 female children survived, 23 male children survived
+aggregate(Survived ~ Child + Sex, data=train, FUN=length)
+#Length of the vector. For example, child0sexfemale has survived length of 259
+aggregate(Survived ~Child + Sex, data=train, FUN=function(x) {sum(x)/length(x)})
+#this gives proportion of survival subset by children and sex
+#More females survived, regardless of whether they were children or not, and so the original prediction that females always had a higher probability of surviving does not change.
+```
+Abandon Age-Based Analysis as is because it is fruitless.
+
+
+Fare-Class-Based Analysis
+-------------------------
+```{r}
+train$Fare2 <- '30+'
+train$Fare2[train$Fare < 30 & train$Fare >= 20] <- '20-30'
+train$Fare2[train$Fare < 20 & train$Fare >= 10] <- '10-20'
+train$Fare2[train$Fare < 10] <- '<10'
+#Fare is a continuous variable, and so create bins
+
+aggregate(Survived~Fare2 + Pclass + Sex, data=train,FUN=function(x) {sum(x)/length(x)})
+#Survival proportions based on gender, fare cost, and pclass
+#Majority of males, regardless of class or fare died. However, most of the class 3 woomen who paid more than $20 also died. A hypothesis could be that these expensive cabins were located close to the iceberg impact site, or were further from the exit stairs.
+```
+
+```{r}
+test$Survived <- 0
+test$Survived[test$Sex == 'female'] <- 1
+test$Survived[test$Sex == 'female' & test$Pclass == 3 & test$Fare >= 20] <- 0
+submit <- data.frame(PassengerId = test$PassengerId,Survived = test$Survived)
+write.csv(submit,file="Titanic_Model.csv",row.names=FALSE)
+```
+Over the previous model, females who are in class 3 and has a fare greater than 20 are assumed to die.
+Thus far, I cut apart the data into component so that I could identify which group died and which did not.
+
+Prediction score of: 0.77990
+- - - -
