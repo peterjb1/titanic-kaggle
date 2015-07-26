@@ -15,6 +15,9 @@ Submissions:
 
 0.79904 - Machine learning with decision trees and feature engineering
 
+0.81340 - Conditional Inference trees + Random forests + exclude Parch&SibSp
+
+Project concluded
 
 File List:
 ----------

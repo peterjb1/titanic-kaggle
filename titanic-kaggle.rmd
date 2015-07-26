@@ -213,7 +213,7 @@ combi$FamilyID <- paste(as.character(combi$FamilySize), combi$Surname,sep="")
 combi$FamilyID[combi$FamilySize <= 2] <- 'Small' #Disinction between big and small families
 famIDs <- data.frame(table(combi$FamilyID))
 famIDs <- famIDs[famIDs$Freq <= 2,]
-combi$FamilID[combi$FamilyID %in% famIDs$Var1] <- 'Small'
+combi$FamilyID[combi$FamilyID %in% famIDs$Var1] <- 'Small'
 combi$FamilyID <- factor(combi$FamilyID)
 train <- combi[1:891,] #take all columns of the specified rows
 test <- combi[892:1309,]
@@ -243,3 +243,101 @@ However, the nature of the decision tre is clear. Title or gender variables will
 
 Prediction score of: 0.79904
 - - - -
+
+Random Forests
+--------------
+
+Ensemble models: Grow a lot of different models and then take the average of the outcomes.
+This can overcome the problem of overfitting that comes with decision trees. 
+
+The formulas for building a single decision tree are the same every time, and so randomness needs to be introduced.
+
+There are 2 ways to introduce randomness.
+
+1. Bagging
+-----------
+Bagging is bootstrap aggregating. Bagging takes a randomized sample of the rows in my training set, with replacement. 
+
+For example: Want to perform bagging on a training set with 10 rows.
+```{r}
+sample(1:10,replace=TRUE)
+```
+With bagging, each decision will grow slightly differently, unless a feature is very strong such as gender.
+2. Take subset of available variables
+-------------------------------------
+Instead of looking at the entire pool of available variables, Random Forest tke only a subset of them. The selection of available variables is canged for each nd every node in the decision trees. Many trees won't even have the gender variable available at the fist split due to this.
+
+Before proceeding with Random Forests, it is required to clean up the data, as in replace all values such as NA.
+
+Data cleaning
+--------------
+```{r}
+summary(combi$Age)
+Agefit <- rpart(Age ~ Pclass + Sex + SibSp + Parch + Fare + Embarked + Title + FamilySize,
+data = combi[!is.na(combi$Age),],method="anova")
+combi$Age[is.na(combi$Age)] <- predict(Agefit,combi[is.na(combi$Age),])
+```
+263 age values are missing, and so fill them up using a prediction. Use method "anova" since now I want a continuous variable.
+```{r}
+summary(combi)
+```
+After getting a high level view, I see that Fare has 1 NA and Embarked has a blank for 2 passengers.
+I don't know where the 2 blanks are from, but assume S (Southhampton) because it is the overwhelming location people are from.
+```{r}
+which(combi$Embarked == '')
+#62 and 830 are the missing passeners
+combi$Embarked[c(62,830)] = "S"
+combi$Embarked <- factor(combi$Embarked)
+#Embarked is now fixed.
+which(is.na(combi$Fare))
+combi$Fare[1044] <- median(combi$Fare, na.rm=TRUE)
+#Replace the NA with the median fare value
+```
+Data is now cleared of NAs
+
+32 levels max for a factor
+--------------------------
+Random Forests in R can only handle factors with up to 32 levels. 
+```{r}
+levels(combi$FamilyID)
+#FamilyID has 97 levels, so it must be trimmed.
+combi$FamilyID2 <- combi$FamilyID
+combi$FamilyID2 <- as.character(combi$FamilyID2)
+combi$FamilyID2[combi$FamilySize <= 3] <- 'Small'
+combi$FamilyID2 <- factor(combi$FamilyID2)
+levels(combi$FamilyID2) # FamilyID2 has 31 levels
+```
+
+```{r}
+library(randomForest)
+#set seed in R before beginning to make results reproducible next time you load the code up
+set.seed(499)
+fit <- randomForest(as.factor(Survived) ~ Pclass + Sex + Age + SibSp + Parch + Fare + Embarked + Title + FamilySize + FamilyID2, data=train,importance=TRUE,ntree=2000)
+#ntree = # of trees to grow
+#importance allows inspection of variable importance
+varImpPlot(fit)
+#Hierarchy shows he importance of a variable. Title is at the top as expected.
+#this random forest prediction will perform less than the feature engineered prediction.
+```
+library(party)
+
+```{r}
+#try forest of conditional inference trees
+fit <- cforest(as.factor(Survived) ~ Pclass + Sex + Age + Fare + SibSp + Parch + Embarked + Title + FamilySize + FamilyID, data = train, controls = cforest_unbiased(ntree=2000,mtry=3))
+#conditonal inference trees can handle more levels than andom forests
+Prediction <- predict(fit,test,OOB=TRUE,type="response")
+submit <- data.frame(PassengerId = test$PassengerId,Survived = Prediction)
+write.csv(submit, file = "Titanic_Model.csv",row.names=FALSE)
+```
+Exclude Parch test: 0.80861
+Exclude Parch and SibSp: 0.81340
+Exclude Parch, SibSp, and Embarked: 0.80861
+Exclude Parch and FamilySize: 0.81340
+Exclude Parch and FamilyID: 0.79904 
+
+I achieved the highest prediction score of 0.81340.
+It appears that conditional inference trees is more powerful than random forests. In addition, creating the feature engineering has been very important in achieveing my prediction score. By creating new variables and running conditional inference trees with multiple prediction models, I can run many simulations to identify which is most accurate.
+
+![Final Score](http://i.imgur.com/Iu20CCh.jpg)
+
+This has been a fun project. I learned about feature engineering, random forests, and the importance of being creative instead of trying to brute force with complex algorithms.
