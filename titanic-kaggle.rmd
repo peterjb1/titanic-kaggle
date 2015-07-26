@@ -1,7 +1,7 @@
 ---
 Titanic Death Prediction Model
 ==============================
-author: Peter
+author: "Peter"
 
 Setup
 -----
@@ -143,4 +143,103 @@ Using decision trees, I explored areas I previously didn't consider. However, be
 
 
 Prediction score of: 0.78469
+- - - -
+Feature Engineering
+-------------------
+Feature engineering is important for a machine learning algorithm because an engineered feature may be easier to digest and make rules from than the variables that the feature was derived from. Dive into existing variables and extract parts of them to build a new predictive attribute.
+
+train$Name[1]
+
+
+1st Prediction: Persons title can provide insight
+-----------------------------------------------------
+Use rbind, row bind, to merge 2 data frames. This can be done so long as both of the data frames have te same columns as each other.
+
+```{r}
+test$Survived <- NA
+combi <- rbind(train,test)
+```
+combi is a dataframe with all of the same rows as the original 2 datasets. train is first, test second.
+```{r}
+combi$Name[1]
+#Name is automatically set as a factor, but want strings.
+combi$Name <- as.character(combi$Name)
+combi$Name[1]
+#Name is now a string, and the 1307 levels have disappeared. We have pure text.
+#Output is "Braund, Mr. Owen Harris"
+strsplit(combi$Name[1],split='[,.]')
+#Split the string from , and . --> this is a regex
+strsplit(combi$Name[1],split='[,.]')[[1]] #strsplit uses a doubly stacked matrix
+strsplit(combi$Name[1],split='[,.]')[[1]][2] #Extract the title.
+
+combi$Title <- sapply(combi$Name,FUN=function(x) {strsplit(x,split='[,.]')[[1]][2]})
+#Feed sapply vector of names and function that I want. sapply runs through the rows of the vector of names, and sends each name to the fnuction. The results are combined into a vector and then the new vector is stored in the column Title in the dataframe combi.
+
+combi$Title <- sub(' ','',combi$Title) #replaces all spaces with empty string
+```
+```{r}
+table(combi$Title)
+```
+Have titles such as Capt, Major, Miss, Mr, Mrs, Sir, Lady, Dr, etc.
+Since there are some useless titlees though, combine them. For example, Mademoiselle and Madame are the same.
+```{r}
+combi$Title[combi$Title %in% c('Mme','Mlle')] <- 'Mlle'
+```
+I am consolidating some categories.
+%in% operator checks to see if a value is part of the vector I am comparing it to. I am combining 2 titles, 'Mme' and 'Mlle', into a new temporary vector using the c() operator and seeing if any of the existing titles in the entire Title column match either of them. I then replace any match with 'Mlle'.
+```{r}
+table(combi$Title) # Mlle used to be 2, Mme 1, now Mme is gone and Mlle is 3
+```
+Combine the rich/military titles for men and women
+```{r}
+combi$Title[combi$Title %in% c('Capt','Don','Major','Sir')] <- 'Sir'
+combi$Title[combi$Title %in% c('Dona','Lady','the Countess','Jonkheer')] <- 'Lady'
+#Now need to change variable type back to a factor
+combi$Title <- factor(combi$Title)
+```
+Done with passenger's title.
+2nd Prediction: Families live and die together.
+-----------------------------------------------
+Now consolidate SibSb and Parch, variables that indicate the number of family members the passenger is travelling with.
+```{r}
+combi$FamilySize <- combi$SibSp + combi$Parch + 1
+```
+Add the number of siblings, spouses, parents and children the passenger had with them plus 1 for self.
+The idea is that families move together, and so if one member isn't able to survive, the rest would be more likely to not survive.
+
+```{r}
+combi$Surname <- sapply(combi$Name,FUN=function(x) {strsplit(x,split='[,.]')[[1]][1]})
+combi$FamilyID <- paste(as.character(combi$FamilySize), combi$Surname,sep="")
+combi$FamilyID[combi$FamilySize <= 2] <- 'Small' #Disinction between big and small families
+famIDs <- data.frame(table(combi$FamilyID))
+famIDs <- famIDs[famIDs$Freq <= 2,]
+combi$FamilID[combi$FamilyID %in% famIDs$Var1] <- 'Small'
+combi$FamilyID <- factor(combi$FamilyID)
+train <- combi[1:891,] #take all columns of the specified rows
+test <- combi[892:1309,]
+```
+Finished with 2 engineered variables. Title, and FamilySize as in Title has influence on survival, and FamilySize has influence on survival.
+
+
+Finally: Creating the fit rules and running the decision tree.
+--------------------------------------------------------------
+```{r}
+fit <- rpart(Survived ~ Pclass + Sex + Age + SibSp + Parch + Fare + Embarked + Title + FamilySize + FamilyID, data = train,method = "class")
+```
+rpart is for recursive partitioning and regression trees
+```{r}
+?predict
+Prediction <- predict(fit,test,type = "class")
+submit <- data.frame(PassengerId = test$PassengerId,Survived = Prediction)
+write.csv(submit, file = "Titanic_Model.csv",row.names=FALSE)
+```
+Final Notes
+-----------
+Decision trees are biased to favor factors with many levels. The reason is so that the decision node can chop and change the data into the best way possible combnation for the nodes.
+
+To progress, create more engineered variables. Analyze wiht moe complexity parameters and trim deeper trees. In addition, consider excluding some variables from the tree.
+
+However, the nature of the decision tre is clear. Title or gender variables will govern the first decision due to the greedy nature of decision trees. The bias towards many-levelled factors and overfitting will also reoccuring problems.
+
+Prediction score of: 0.79904
 - - - -

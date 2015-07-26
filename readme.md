@@ -13,6 +13,8 @@ Submissions:
 
 0.78469 - Machine learning with decision trees
 
+0.79904 - Machine learning with decision trees and feature engineering
+
 
 File List:
 ----------
